@@ -12,7 +12,8 @@ DRONE_CONFIG = [{
 	'battery_capacity': 45,          # 45,000 mAh (This gives us about 2hrs of aviation)
 }]
 
-route = [
+
+route_full = [
 	[38.8310746001285, -77.3076380077037, 0],     # GMU Horizon Hall
 	[38.8310746001285, -77.3076380077037, 21],    # GMU Horizon Hall
 	[38.83242457930523, -77.30643216075059, 22],  # GMU Sandbridge Hall
@@ -20,6 +21,14 @@ route = [
 	[38.8477807377734, -77.30534738657532, 23],   # Old Town Plaza Shopping Mall
 	[38.8477807377734, -77.30534738657532, 0]	  # Old Town Plaza Shopping Mall
 ]
+
+route = [
+	[38.8310746001285, -77.3076380077037, 0],     # GMU Horizon Hall
+	[38.8310746001285, -77.3076380077037, 21],    # GMU Horizon Hall
+	[38.83242457930523, -77.30643216075059, 22],  # GMU Sandbridge Hall
+	[38.83242457930523, -77.30643216075059, 0],  # GMU Sandbridge Hall
+]
+
 
 def main():
 	drone1 = Drone(DRONE_CONFIG[0]['id'], DRONE_CONFIG[0]['drone_type'], DRONE_CONFIG[0]['acceleration_rate'], 

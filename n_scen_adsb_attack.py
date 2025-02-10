@@ -10,15 +10,19 @@ from jammer import Jammer
 from spoofer import Spoofer
 
 # Define central location (e.g., Washington, D.C.)
-center_lat, center_lon = 38.8977, -77.0365  # White House location
+# center_lat, center_lon = 38.8977, -77.0365  # White House location
+
+center_lat, center_lon = 38.8310746001285, -77.3076380077037 # GMU Horizon Hall
 
 # Initialize GCS
 gcs = GCS(center_lat, center_lon)
 gcs_pos = (center_lat, center_lon)
 
 # Create a RouteGenerator instance
-route_gen = RouteGenerator(center_lat, center_lon, num_routes=1, waypoints_per_route=5, max_offset=0.02)
-routes = route_gen.generate_routes()
+# route_gen = RouteGenerator(center_lat, center_lon, num_routes=1, waypoints_per_route=5, max_offset=0.02)
+# routes = route_gen.generate_routes()
+
+routes = [[(38.847509000825845, -77.30614845408233, 161), (38.83763533303954, -77.30691307604847, 169)]]
 
 # Initialize multiple drones with generated routes
 drones = [
@@ -126,6 +130,6 @@ def update(frame):
     return list(drone_markers.values())
 
 # Set up animation
-ani = FuncAnimation(fig, update, frames=range(100), interval=1000, blit=False)
+ani = FuncAnimation(fig, update, frames=range(100), interval=100, blit=False)
 
 plt.show()

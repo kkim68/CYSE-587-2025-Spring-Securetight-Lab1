@@ -99,6 +99,6 @@ def update(frame):
     return list(drone_markers.values())
 
 # Set up animation
-ani = FuncAnimation(fig, update, frames=range(100), interval=1000, blit=False)
+ani = FuncAnimation(fig, update, frames=range(100), interval=100, blit=False)
 
 plt.show()
