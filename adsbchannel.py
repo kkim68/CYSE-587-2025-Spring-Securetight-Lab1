@@ -34,6 +34,7 @@ class ADSBChannel:
         noise_power_dbm = 10 * np.log10(noise_power_watts) + 30
         return noise_power_dbm
 
+
     def transmit(self, message, gcs_position, tx_power_dbm=50, bandwidth_hz=1e6, jammer=None, spoofer=None):
         drone_lat, drone_lon = message["latitude"], message["longitude"]
         gcs_lat, gcs_lon = gcs_position
@@ -67,11 +68,13 @@ class ADSBChannel:
             spoofed_message, spoofed = spoofer.spoof_message(message)
             if spoofed:
                 # Assuming the spoofed message interferes with the legitimate signal
-                spoofing_signal_power_dbm = tx_power_dbm  # Assuming same power for simplicity
+                spoofing_signal_power_dbm = spoofer.spoof_signal_power(rx_power_dbm, noise_power_dbm, self.noise_figure_db)
+
                 effective_noise_power_dbm = 10 * np.log10(
                     10**(noise_power_dbm / 10) + 10**(spoofing_signal_power_dbm / 10)
                 )
                 snr_db = rx_power_dbm - (effective_noise_power_dbm + self.noise_figure_db)
+                message = spoofed_message
 
         corrupted = False
         if snr_db < 0 or random.random() < self.error_rate:
