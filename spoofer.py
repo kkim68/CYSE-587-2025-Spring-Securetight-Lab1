@@ -10,46 +10,78 @@ class Spoofer:
     def __init__(self, spoof_probability=0.3, fake_drone_id="FAKE123"):
         self.spoof_probability = spoof_probability
         self.fake_drone_id = fake_drone_id
-        self.history = []
+        self.delta = {
+            'latitude': 0,
+            'longitude': 0,
+            'altitude': 0
+        }
+        self.spoof_acceleration = {
+            'latitude': 0.3,
+            'longitude': 0.3,
+            'altitude': 0.8
+        }
+
+        self.calculated_direction_vector = None
+        self.prev_message = None
+        self.count = 0
 
     def spoof_message(self, message):
         """Modify a real drone message or inject a fake drone."""
         if random.random() < self.spoof_probability:
             print("[Spoofer] Spoofing message:", message)
-            spoofed_message = message.copy()
-            delta_lat, delta_long, delta_alt = self.calculate_gradual_change(message)
-            spoofed_message['latitude'] += delta_lat
-            spoofed_message['longitude'] += delta_long
-            spoofed_message['altitude'] += delta_alt
+            spoofed_message = self.calculate_gradual_spoof(message)
             spoofed_message['drone_id'] = message['drone_id']
             print("[Spoofer] Spoofed message:", spoofed_message)
             # spoofed_message['drone_id'] = self.fake_drone_id if random.random() < 0.5 else message['drone_id']
-
             return spoofed_message, True
 
         return message, False
 
-    def calculate_gradual_change(self, message):
-        # TODO: Calculate gradual change of position in terms of momentum, vector(direction), previous position...
-        # TODO: maybe we should maintain "history" of the spoofed drone positions.
-        
-        # [!!] Guys, this is still random.
-        #      Maybe we should pick a specific direction and gradually accelerate the drone into that direction.
-        #      Any comments would be appreciated.
+    def calculate_gradual_spoof(self, message):
+        spoofed_message = message.copy()
 
-        delta_lat = random.uniform(-0.0001, 0.0001)
-        delta_long = random.uniform(-0.0001, 0.0001)
-        delta_alt = random.uniform(-5, 5)
+        if self.count == 0:
+            self.count += 1
+            self.prev_message = spoofed_message
+            return spoofed_message
+        else:
+            if self.count == 1:
+                diff_lat  = message['latitude'] - self.prev_message['latitude']
+                diff_long = message['longitude'] - self.prev_message['longitude']
+                diff_alt  = message['altitude'] - self.prev_message['altitude'] 
+                diff_dist = (diff_lat**2 + diff_long**2 + diff_alt**2) ** (1/3)
 
-        return delta_lat, delta_long, delta_alt
+                self.calculated_direction_vector = {
+                    'latitude': diff_lat / diff_dist,
+                    'longitude': diff_long / diff_dist,
+                    'altitude': diff_alt / diff_dist
+                }
+
+            self.delta = {
+                'latitude': self.delta['latitude'] + self.spoof_acceleration['latitude'] * self.calculated_direction_vector['latitude'],
+                'longitude': self.delta['longitude'] + self.spoof_acceleration['longitude']  * self.calculated_direction_vector['longitude'],
+                'altitude': self.delta['altitude'] + self.spoof_acceleration['altitude']  * self.calculated_direction_vector['altitude']
+            }
+
+            spoofed_message = {
+                'latitude': message['latitude'] + self.delta['latitude'],
+                'longitude': message['longitude'] + self.delta['longitude'],
+                'altitude': message['altitude'] + self.delta['altitude']
+            }
+
+            if spoofed_message['altitude'] < 0:
+                spoofed_message['altitude'] = 1.0
+
+            self.count += 1
+            return spoofed_message
 
 
     def spoof_signal_power(self, rx_power_dbm, noise_power_dbm, noise_figure_db):
         # Calculate appropriate spoofing signal power to maintain SNR above 0 dB.
         
     
-        # Target SNR after spoofing (slightly above 0 dB to avoid corruption)
-        target_snr = 1.0  # dB        
+        # Target SNR after spoofing (we chose value that is around normal)
+        target_snr = 17.5  # dB        
 
         # Calculate maximum interference power that keeps SNR above target
         # Derived from : snr_db = rx_power_dbm - (effective_noise_power_dbm + self.noise_figure_db)

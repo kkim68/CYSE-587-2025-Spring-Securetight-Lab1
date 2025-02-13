@@ -22,7 +22,7 @@ gcs_pos = (center_lat, center_lon)
 # route_gen = RouteGenerator(center_lat, center_lon, num_routes=1, waypoints_per_route=5, max_offset=0.02)
 # routes = route_gen.generate_routes()
 
-routes = [[(38.847509000825845, -77.30614845408233, 161), (38.83763533303954, -77.30691307604847, 169)]]
+routes = [[(38.847509000825845, -77.30614845408233, 161), (38.83763533303954, -77.30691307604847, 120)]]
 
 # Initialize multiple drones with generated routes
 drones = [
