@@ -28,6 +28,15 @@ class Spoofer:
     def spoof_message(self, message):
         """Modify a real drone message or inject a fake drone."""
         if random.random() < self.spoof_probability:
+
+            spoofed_message = message.copy()
+
+            # spoofed_message['latitude'] += random.uniform(-0.001, 0.001)
+            # spoofed_message['longitude'] += random.uniform(-0.001, 0.001)
+            # spoofed_message['altitude'] += random.uniform(-5, 5)
+            # spoofed_message['drone_id'] = self.fake_drone_id if random.random() < 0.5 else message['drone_id']
+            # return spoofed_message, True
+
             print("[Spoofer] Spoofing message:", message)
             spoofed_message = self.calculate_gradual_spoof(message)
             spoofed_message['drone_id'] = message['drone_id']

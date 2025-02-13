@@ -9,6 +9,8 @@ from adsbchannel import ADSBChannel
 from jammer import Jammer
 from spoofer import Spoofer
 
+NEED_TO_RECORD_SCREEN = True
+
 # Define central location (e.g., Washington, D.C.)
 # center_lat, center_lon = 38.8977, -77.0365  # White House location
 
@@ -73,6 +75,10 @@ ax.set_zlabel("Altitude (m)")
 ax.legend()
 
 def update(frame):
+    global NEED_TO_RECORD_SCREEN
+    if NEED_TO_RECORD_SCREEN:
+        time.sleep(5)
+        NEED_TO_RECORD_SCREEN = False
     active_drones = False
     for drone in drones:
         status = drone.calculate_navigation(1)
@@ -131,5 +137,5 @@ def update(frame):
 
 # Set up animation
 ani = FuncAnimation(fig, update, frames=range(100), interval=100, blit=False)
-
 plt.show()
+
