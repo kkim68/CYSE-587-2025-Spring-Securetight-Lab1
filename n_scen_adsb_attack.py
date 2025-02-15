@@ -27,7 +27,7 @@ gcs_pos = (center_lat, center_lon)
 # route_gen = RouteGenerator(center_lat, center_lon, num_routes=1, waypoints_per_route=5, max_offset=0.02)
 # routes = route_gen.generate_routes()
 
-routes = [[(38.847509000825845, -77.30614845408233, 161), (38.83763533303954, -77.30691307604847, 169)]]
+routes = [[(38.847509000825845, -77.30614845408233, 1400), (38.83763533303954, -77.30691307604847, 1220)]]
 drones_icao24 = ['AAAA00', 'AAAA01', 'AAAA02', 'AAAA03', 'AAAA04', 'AAAA05', 'AAAA06', 'AAAA07', 'AAAA08', 'AAAA09', 'AAAA0A', 'AAAA0B', 'AAAA0C', 'AAAA0D', 'AAAA0E', 'AAAA0F']
 # Initialize multiple drones with generated routes
 drones = [
@@ -40,7 +40,7 @@ drones = [
         position_error=2.0,
         altitude_error=1.0,
         battery_consume_rate=0.05,
-        battery_capacity=10.0 + i * 5,
+        battery_capacity=20.0 + i * 5,
         route=routes[i]
     )
     for i in range(len(routes))
@@ -50,7 +50,7 @@ drones = [
 channel = ADSBChannel()
 #jammer = Jammer(jamming_probability=0.4, noise_intensity=0.8)  # Adjust probability as needed
 jammer = None
-spoofer = Spoofer(spoof_probability=0.9, fake_drone_id="FAKE-DRONE")
+spoofer = Spoofer(spoof_probability=0.7, fake_drone_id="FAKE-DRONE")
 
 # Create a figure for 3D plotting
 fig = plt.figure()
