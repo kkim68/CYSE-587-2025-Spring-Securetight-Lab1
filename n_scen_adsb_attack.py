@@ -6,8 +6,13 @@ from drone import Drone
 from route import RouteGenerator
 from gcs import GCS
 from adsbchannel import ADSBChannel
+from adsbmessage import ADSBMessage
+import pyModeS as pms
+
 from jammer import Jammer
 from spoofer import Spoofer
+from util import *
+
 
 # Define central location (e.g., Washington, D.C.)
 # center_lat, center_lon = 38.8977, -77.0365  # White House location
@@ -23,12 +28,12 @@ gcs_pos = (center_lat, center_lon)
 # routes = route_gen.generate_routes()
 
 routes = [[(38.847509000825845, -77.30614845408233, 161), (38.83763533303954, -77.30691307604847, 169)]]
-
+drones_icao24 = ['AAAA00', 'AAAA01', 'AAAA02', 'AAAA03', 'AAAA04', 'AAAA05', 'AAAA06', 'AAAA07', 'AAAA08', 'AAAA09', 'AAAA0A', 'AAAA0B', 'AAAA0C', 'AAAA0D', 'AAAA0E', 'AAAA0F']
 # Initialize multiple drones with generated routes
 drones = [
     Drone(
-        id=f"{i+1}",
-        drone_type=f"type{i+1}",
+        id=f"{drones_icao24[i]}",
+        drone_type=f"type{i}",
         acceleration_rate=2.0,
         climb_rate=3.0,
         speed=10.0 + i * 5,
@@ -43,7 +48,8 @@ drones = [
 
 # Initialize the communication channel, jammer, and spoofer
 channel = ADSBChannel()
-jammer = Jammer(jamming_probability=0.4, noise_intensity=0.8)  # Adjust probability as needed
+#jammer = Jammer(jamming_probability=0.4, noise_intensity=0.8)  # Adjust probability as needed
+jammer = None
 spoofer = Spoofer(spoof_probability=0.9, fake_drone_id="FAKE-DRONE")
 
 # Create a figure for 3D plotting
@@ -84,25 +90,45 @@ def update(frame):
         else:
             active_drones = True
             # Original (ideal) message
-            original_message = {
+
+            
+            original_message = ADSBMessage(drone.id, drone.current_position[2], drone.current_position[0], drone.current_position[1])
+            
+            original_message_for_print = {
                 'drone_id': drone.id,
                 'latitude': drone.current_position[0],
                 'longitude': drone.current_position[1],
                 'altitude': drone.current_position[2],
                 'timestamp': time.time()
             }
+            
 
-            # Step 1: Simulate transmission from the drone to the GCS
-            received_message, delay_ns, corrupted, snr_db = channel.transmit(
-                original_message, gcs_pos, jammer=jammer, spoofer=spoofer
+            # Step 1: Calculate basic signal parameters
+            distance = ADSBChannel._haversine_distance(drone.current_position[0], drone.current_position[1], gcs_pos[0], gcs_pos[1])
+
+            # Step 2: Simulate transmission from the drone to the GCS
+            received_df17_even, received_df17_odd, delay_ns, corrupted, snr_db = channel.transmit(
+                distance, original_message, jammer=jammer, spoofer=spoofer
             )
 
-            if received_message is None:
+            if received_df17_even is None or received_df17_odd is None:
                 print(f"Drone {drone.id} message lost during transmission.")
                 continue
 
+            # Step 3: Decode DF17 message at GCS
+            latitude, longitude = pms.adsb.position(received_df17_even, received_df17_odd, time.time(), time.time()+1)
+            altitude = pms.adsb.altitude(received_df17_even)
+
+
+            received_message = {
+                'drone_id': pms.adsb.icao(received_df17_even),
+                'latitude': latitude,
+                'longitude': longitude,
+                'altitude': altitude
+            } 
+
             # Display Results
-            print(f"Original Message: {original_message}")
+            print(f"Original Message: {original_message_for_print}")
             print(f"Received Message (after channel effects): {received_message}")
             print(f"Transmission Delay: {delay_ns:.2f} ns")
             print(f"SNR: {snr_db:.2f} dB")

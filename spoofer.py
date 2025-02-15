@@ -1,7 +1,9 @@
 import random
 import numpy as np
 import time
-
+import pyModeS as pms
+from adsbmessage import ADSBMessage
+from util import *
 class Spoofer:
     """
     This class simulates ADS-B spoofing by modifying legitimate drone messages
@@ -15,7 +17,7 @@ class Spoofer:
         self.delta = {'latitude': 0, 'longitude': 0, 'altitude': 0}
 
         # Gradual acceleration starts small and increases over time
-        self.spoof_acceleration = {'latitude': 0.05, 'longitude': 0.05, 'altitude': 0.1}
+        self.spoof_acceleration = {'latitude': 0.001, 'longitude': 0.001, 'altitude': 0.1}
         
         # Introduce a decay factor to prevent sudden jumps
         self.spoof_decay_factor = 0.98  # Gradually slow down spoofing
@@ -24,16 +26,31 @@ class Spoofer:
         self.prev_message = None
         self.count = 0
 
-    def spoof_message(self, message):
+    def spoof_message(self, df17_even, df17_odd):        
+        latitude, longitude = pms.adsb.position(df17_even, df17_odd, time.time(), time.time()+1)
+        altitude = pms.adsb.altitude(df17_even)
+        # print(latitude, longitude, altitude)
+
+        message = {
+            'drone_id': pms.adsb.icao(df17_even),
+            'latitude': latitude,
+            'longitude': longitude,
+            'altitude': altitude
+        } 
+
         """Modify a real drone message or inject a fake drone."""
         if random.random() < self.spoof_probability:
             print("[Spoofer] Spoofing message:", message)
             spoofed_message = self.calculate_gradual_spoof(message)
             spoofed_message['drone_id'] = message['drone_id']
             print("[Spoofer] Spoofed message:", spoofed_message)
-            return spoofed_message, True
 
-        return message, False
+            spoofed_df17_even, spoofed_df17_odd = ADSBMessage(
+                spoofed_message['drone_id'], spoofed_message['altitude'], spoofed_message['latitude'], spoofed_message['longitude']
+            ).encode()
+            return spoofed_df17_even, spoofed_df17_odd, True
+
+        return df17_even, df17_odd, False
 
     def calculate_gradual_spoof(self, message):
         spoofed_message = message.copy()
