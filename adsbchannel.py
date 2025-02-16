@@ -80,6 +80,20 @@ class ADSBChannel:
         jamming_signal_power_dbm = 0
         effective_spoofing_signal_power_dbm = 0
         
+        # Apply spoofing effects if a spoofer is present
+        if spoofer:
+            spoofed_df17_even, spoofed_df17_odd, spoofed = spoofer.spoof_message(result_df17_even, result_df17_odd)
+            if spoofed:
+                # Assuming the spoofed message interferes with the legitimate signal
+                spoofing_signal_power_dbm = spoofer.spoof_signal_power(rx_power_dbm, noise_power_dbm, self.noise_figure_db)
+                effective_spoofing_signal_power_dbm = 10 * np.log10(10**(noise_power_dbm / 10) + 10**(spoofing_signal_power_dbm / 10))
+                result_df17_even = spoofed_df17_even
+                result_df17_odd  = spoofed_df17_odd
+
+        # Calculate overall SNR
+        snr_db = snr_db - jamming_signal_power_dbm
+        snr_db = snr_db - effective_spoofing_signal_power_dbm
+
         # Apply jamming effects if a spoofer is present
         if jammer:
             # Simulate bit-by-bit transmission (for realistic jamming experience...)
@@ -104,23 +118,7 @@ class ADSBChannel:
                     # Apply bit corruption based on probability
                     if random.random() < bit_error_prob:
                         result_df17_even = self.corrupt_bit(result_df17_even, bit_index)
-                        result_df17_odd = self.corrupt_bit(result_df17_odd, bit_index)
-
-
-        # Apply spoofing effects if a spoofer is present
-        if spoofer:
-            spoofed_df17_even, spoofed_df17_odd, spoofed = spoofer.spoof_message(result_df17_even, result_df17_odd)
-            if spoofed:
-                # Assuming the spoofed message interferes with the legitimate signal
-                spoofing_signal_power_dbm = spoofer.spoof_signal_power(rx_power_dbm, noise_power_dbm, self.noise_figure_db)
-                effective_spoofing_signal_power_dbm = 10 * np.log10(10**(noise_power_dbm / 10) + 10**(spoofing_signal_power_dbm / 10))
-                result_df17_even = spoofed_df17_even
-                result_df17_odd  = spoofed_df17_odd
-
-        # Calculate overall SNR
-        snr_db = snr_db - jamming_signal_power_dbm
-        snr_db = snr_db - effective_spoofing_signal_power_dbm
-        
+                        result_df17_odd = self.corrupt_bit(result_df17_odd, bit_index)        
 
         # Since we are now using the bit-by-bit transmission and have ability to corrupt some bits within the message,
         # corruption will be simulated that way, rather than just compensating random value to the position.

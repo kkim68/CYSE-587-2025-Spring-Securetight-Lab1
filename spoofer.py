@@ -17,7 +17,7 @@ class Spoofer:
         self.delta = {'latitude': 0, 'longitude': 0, 'altitude': 0}
 
         # Gradual acceleration starts small and increases over time
-        self.spoof_acceleration = {'latitude': 0.001, 'longitude': 0.001, 'altitude': 0.1}
+        self.spoof_acceleration = {'latitude': 0.0001, 'longitude': 0.0001, 'altitude': 3}
         
         # Introduce a decay factor to prevent sudden jumps
         self.spoof_decay_factor = 0.98  # Gradually slow down spoofing

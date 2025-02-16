@@ -52,9 +52,8 @@ channel = ADSBChannel()
 # jammer = Jammer(jamming_type="CW", jamming_power_dbm=45, center_freq=1090e6, offset_freq=0.2e6)
 jammer = Jammer(jamming_type="PULSE",jamming_power_dbm=45, center_freq=1090e6, pulse_width_us=15.0, pulse_repetition_freq=2000.0)
 # jammer = None
-
-# spoofer = Spoofer(spoof_probability=0.7, fake_drone_id="FAKE-DRONE")
-spoofer = None
+spoofer = Spoofer(spoof_probability=0.7, fake_drone_id="FAKE-DRONE")
+# spoofer = None
 
 # Create a figure for 3D plotting
 fig = plt.figure()
