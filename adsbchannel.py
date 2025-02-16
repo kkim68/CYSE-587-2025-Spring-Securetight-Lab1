@@ -1,7 +1,9 @@
 import numpy as np
 import random
 import time
+
 from adsbmessage import ADSBMessage
+import pyModeS as pms
 
 class ADSBChannel:
     def __init__(self, error_rate=0.01, frequency=1090e6, noise_figure_db=5.0):
@@ -116,8 +118,16 @@ class ADSBChannel:
         # Since we are now using the bit-by-bit transmission and have ability to corrupt some bits within the message,
         # corruption will be simulated that way, rather than just compensating random value to the position.
         # So, We will now use parity bit to check if message is corrupted :)
-        # TODO: check corrupted using CRC
+        crc_result_even = pms.crc(result_df17_even, True)
+        crc_result_odd = pms.crc(result_df17_odd, True)
+        parity_even = int(result_df17_even[22:], 16) # extract 11th ~ 13th bytes
+        parity_odd = int(result_df17_odd[22:], 16) 
+
         corrupted = False
+        if crc_result_even != parity_even or crc_result_odd != parity_odd:
+            corrupted = True
+            
+        print(parity_even, crc_result_even)
 
         return result_df17_even, result_df17_odd, delay_ns, corrupted, snr_db
 
@@ -128,3 +138,4 @@ class ADSBChannel:
         corrupted_message['longitude'] += random.uniform(-0.01, 0.01)
         corrupted_message['altitude'] += random.uniform(-10, 10)
         return corrupted_message
+
