@@ -39,24 +39,28 @@ class ADSBChannel:
         return noise_power_dbm
 
 
-    def corrupt_bit(self, msg: bytearray, bit_index: int):
-        """Corrupt a specific bit in the message"""
+    def corrupt_bit(self, msg: str, bit_index: int):
+        byte_array = bytearray.fromhex(msg)
+
+        # Corrupt a specific bit in the message
+        # This is for jamming effect...
         byte_index = bit_index // 8
-        bit_offset = 7 - (bit_index % 8)  # MSB first
-        msg[byte_index] ^= (1 << bit_offset)  # Flip the bit
+        bit_offset = 7 - (bit_index % 8)      # Flipping the MSB first..
+        byte_array[byte_index] ^= (1 << bit_offset)  # Flip the bit!
+
+        hex_string = byte_array.hex()
+        return hex_string
 
 
     def transmit(self, distance, original_message, tx_power_dbm=50, bandwidth_hz=1e6, jammer=None, spoofer=None):
-        """
-        Simulate ADS-B transmission with bit-level corruption
+        # Simulate ADS-B transmission with bit-level corruption
         
-        Returns:
-        - df17_even_msg : Received even message (potentially corrupted)
-        - df17_odd_msg  : Received odd message (potentially corrupted)
-        - delay_ns: Propagation delay
-        - snr_db: Signal-to-noise ratio
-        - corrupted_bits: Set of corrupted bit indices
-        """
+        # Returns:
+        # - df17_even_msg : Received even message (potentially corrupted)
+        # - df17_odd_msg  : Received odd message (potentially corrupted)
+        # - delay_ns: Propagation delay
+        # - corrupted: Message has been corrupted or not
+        # - snr_db: Signal-to-noise ratio
 
         delay_seconds = distance / self.light_speed
         delay_ns = np.round(delay_seconds * 1e9, decimals=2)
@@ -70,34 +74,37 @@ class ADSBChannel:
 
         # Encode the message into df17 format
         result_df17_even, result_df17_odd = original_message.encode()
-        corrupted_bits = set()
         
         snr_db = rx_power_dbm - (noise_power_dbm + self.noise_figure_db)
 
         jamming_signal_power_dbm = 0
         effective_spoofing_signal_power_dbm = 0
-
+        
         # Apply jamming effects if a spoofer is present
         if jammer:
             # Simulate bit-by-bit transmission (for realistic jamming experience...)
             for bit_index in range(original_message.TOTAL_BITS):
-                bit_start_us, bit_end_us = original_message.get_bit_timing(bit_index)
+                bit_start_us, _ = original_message.get_bit_timing(bit_index)
                 
                 # Calculate jamming effect for this bit
-                jamming_power, affected_bits = jammer.calculate_jamming_effect(encoded_msg, bit_start_us)
+                jamming_power = jammer.calculate_jamming_effect(
+                    bit_start_us,
+                    original_message.latitude,
+                    original_message.longitude
+                )
                 
                 if jamming_power > float('-inf'):
-                    # Calculate bit-level SNR
+                     # Calculate bit-level SNR
                     jamming_signal_power_dbm = 10 * np.log10(10**(noise_power_dbm / 10) + 10**(jamming_power / 10))
-                    bit_snr_db = rx_power_dbm - (jamming_signal_power_dbm + self.noise_figure_db)
+                    bit_snr_db = snr_db - jamming_signal_power_dbm
                     
                     # Probability of bit error based on SNR
                     bit_error_prob = 0.5 * np.exp(-bit_snr_db / 10)
-                    
+
                     # Apply bit corruption based on probability
                     if random.random() < bit_error_prob:
-                        self.corrupt_bit(encoded_msg, bit_index)
-                        corrupted_bits.add(bit_index)
+                        result_df17_even = self.corrupt_bit(result_df17_even, bit_index)
+                        result_df17_odd = self.corrupt_bit(result_df17_odd, bit_index)
 
 
         # Apply spoofing effects if a spoofer is present
@@ -127,7 +134,7 @@ class ADSBChannel:
         if crc_result_even != parity_even or crc_result_odd != parity_odd:
             corrupted = True
             
-        print(parity_even, crc_result_even)
+        # print(parity_even, crc_result_even)
 
         return result_df17_even, result_df17_odd, delay_ns, corrupted, snr_db
 
