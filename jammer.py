@@ -13,9 +13,9 @@ from math import cos, radians
 
 class Jammer:
     def __init__(self,
-                    jamming_type: str,
-                    jamming_power_dbm: float, # Base transmission power
-                    center_freq: float = 1090e6,      # Center frequency (Hz) - defaults to ADS-B frequency
+                    jamming_type: str,            # Jammer type
+                    jamming_power_dbm: float,     # Base transmission power
+                    center_freq: float = 1090e6,  # Center frequency (Hz) - defaults to ADS-B frequency
 
                     # CW specific parameters
                     offset_freq: float = 0.0,      # Frequency offset for CW (Hz)
@@ -29,10 +29,10 @@ class Jammer:
                     sweep_time_us: float = 100.0,  # Time for one sweep
 
                     # Directional specific parameters
-                    position: Tuple[float, float] = (0.0, 0.0),  # Jammer position
-                    direction_deg: float = 0.0,                  # Beam direction
-                    beam_width_deg: float = 30.0,                # Beam width
-                    antenna_gain_dbi: float = 10.0):             # Antenna gain
+                    position: (0.0, 0.0),             # Jammer position
+                    direction_deg: float = 0.0,       # Beam direction
+                    beam_width_deg: float = 30.0,     # Beam width
+                    antenna_gain_dbi: float = 10.0):  # Antenna gain
 
         # Common parameters
         self.jamming_type = jamming_type
@@ -79,7 +79,8 @@ class Jammer:
             #       So, in reality GCS will not be able to receive the message if the jammer corrupts preamble signal.
             #       And targetting preamble signal only is more practical because it is only 8 micro seconds of noise,
             #       which will be easier to deceive anomaly detection.
-            #       However, I couldn't really modify the simulator to the level where it actually transceives the "Signal".
+            #       I couldn't really modify the simulator to the level where it actually transceives the "Signal".
+            #       However, the timing for preamble signal was implemented.
             #       This is why we have to set pulse_width_us variable larger than 8 in order for it to work.
 
             pulse_period = 1e6 / self.pulse_repetition_freq

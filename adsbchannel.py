@@ -85,14 +85,10 @@ class ADSBChannel:
             spoofed_df17_even, spoofed_df17_odd, spoofed = spoofer.spoof_message(result_df17_even, result_df17_odd)
             if spoofed:
                 # Assuming the spoofed message interferes with the legitimate signal
-                spoofing_signal_power_dbm = spoofer.spoof_signal_power(rx_power_dbm, noise_power_dbm, self.noise_figure_db)
+                spoofing_signal_power_dbm = spoofer.spoof_signal_power(snr_db) # snr_db at the moment = rx_power_dbm - (noise_power_dbm + self.noise_figure_db)
                 effective_spoofing_signal_power_dbm = 10 * np.log10(10**(noise_power_dbm / 10) + 10**(spoofing_signal_power_dbm / 10))
                 result_df17_even = spoofed_df17_even
                 result_df17_odd  = spoofed_df17_odd
-
-        # Calculate overall SNR
-        snr_db = snr_db - jamming_signal_power_dbm
-        snr_db = snr_db - effective_spoofing_signal_power_dbm
 
         # Apply jamming effects if a spoofer is present
         if jammer:
@@ -120,6 +116,10 @@ class ADSBChannel:
                         result_df17_even = self.corrupt_bit(result_df17_even, bit_index)
                         result_df17_odd = self.corrupt_bit(result_df17_odd, bit_index)        
 
+        # Calculate overall SNR
+        snr_db = snr_db - jamming_signal_power_dbm
+        snr_db = snr_db - effective_spoofing_signal_power_dbm
+
         # Since we are now using the bit-by-bit transmission and have ability to corrupt some bits within the message,
         # corruption will be simulated that way, rather than just compensating random value to the position.
         # So, We will now use parity bit to check if message is corrupted :)
@@ -128,19 +128,22 @@ class ADSBChannel:
         parity_even = int(result_df17_even[22:], 16) # extract 11th ~ 13th bytes
         parity_odd = int(result_df17_odd[22:], 16) 
 
+        # print(parity_even, crc_result_even)
+
         corrupted = False
         if crc_result_even != parity_even or crc_result_odd != parity_odd:
             corrupted = True
-            
-        # print(parity_even, crc_result_even)
+        
+        if snr_db < 0:
+            corrupted = True        
 
         return result_df17_even, result_df17_odd, delay_ns, corrupted, snr_db
 
 
-    def corrupt_message(self, message):
-        corrupted_message = message.copy()
-        corrupted_message['latitude'] += random.uniform(-0.01, 0.01)
-        corrupted_message['longitude'] += random.uniform(-0.01, 0.01)
-        corrupted_message['altitude'] += random.uniform(-10, 10)
-        return corrupted_message
+    # def corrupt_message(self, message):
+    #     corrupted_message = message.copy()
+    #     corrupted_message['latitude'] += random.uniform(-0.01, 0.01)
+    #     corrupted_message['longitude'] += random.uniform(-0.01, 0.01)
+    #     corrupted_message['altitude'] += random.uniform(-10, 10)
+    #     return corrupted_message
 
