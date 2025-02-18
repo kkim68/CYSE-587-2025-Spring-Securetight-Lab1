@@ -4,6 +4,7 @@ import time
 import pyModeS as pms
 from adsbmessage import ADSBMessage
 from util import *
+
 class Spoofer:
     """
     This class simulates ADS-B spoofing by modifying legitimate drone messages
@@ -86,11 +87,20 @@ class Spoofer:
                 'altitude': self.delta['altitude'] + (self.spoof_acceleration['altitude'] * self.calculated_direction_vector['altitude'])
             }
 
-            # Introduce slight noise to prevent perfectly linear drift (makes spoofing more realistic)
+
+            # # Introduce slight noise to prevent perfectly linear drift (makes spoofing more realistic)
             noise_factor = 0.0001
             self.delta['latitude'] += random.uniform(-noise_factor, noise_factor)
             self.delta['longitude'] += random.uniform(-noise_factor, noise_factor)
             self.delta['altitude'] += random.uniform(-0.5, 0.5)
+
+            # Above is not required anymore thanks to the nature "error" of ADS-B.
+            # Each 17-bit field for latitude and longitude provides a quantization level of 2^17 = 131,072 discrete values.
+            # The precision this translates to depends on the encoding zone since CPR divides the globe into zones...
+            # This is about 0.001 ~ 0.002 degrees error by nature.
+            # But since it is implemented, I am leaving it.
+            
+
 
             # Apply spoofing changes
             spoofed_message = {
@@ -106,9 +116,9 @@ class Spoofer:
             self.count += 1
             return spoofed_message
 
-    def spoof_signal_power(self, rx_power_dbm, noise_power_dbm, noise_figure_db):
+    def spoof_signal_power(self, snr_db):
         # Set spoofing signal power dynamically based on SNR threshold
         target_snr = 17.5  # dB        
-        max_interference_power = rx_power_dbm - target_snr - noise_figure_db
+        max_interference_power = snr_db - target_snr
         spoofing_power = max_interference_power - 1.0
         return spoofing_power
