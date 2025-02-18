@@ -48,9 +48,11 @@ drones = [
 
 # Initialize the communication channel, jammer, and spoofer
 channel = ADSBChannel()
-# jammer = Jammer(jamming_probability=0.4, noise_intensity=0.8)  # Adjust probability as needed
+
+# jammer = Jammer(jamming_type="CW", jamming_power_dbm=45, center_freq=1090e6, offset_freq=0.2e6)
+jammer = Jammer(jamming_type="PULSE",jamming_power_dbm=45, center_freq=1090e6, pulse_width_us=15.0, pulse_repetition_freq=2000.0)
+# jammer = None
 spoofer = Spoofer(spoof_probability=0.7, fake_drone_id="FAKE-DRONE")
-jammer = None
 # spoofer = None
 
 # Create a figure for 3D plotting
@@ -117,9 +119,17 @@ def update(frame):
                 continue
 
             # Step 3: Decode DF17 message at GCS
-            latitude, longitude = pms.adsb.position(received_df17_even, received_df17_odd, time.time(), time.time()+1)
-            altitude = pms.adsb.altitude(received_df17_even)
+            #         If message is corrupted by the jammer, zero out position value.
+            #         This is a simulation of un-decodable df17 message.
+            #         Note: Message will never be "corrupted" by the spoofer, since the spoofer re-calculates parity bits.
 
+            if corrupted:
+                latitude = 0
+                longitude = 0
+                altitude = 0
+            else:
+                latitude, longitude = pms.adsb.position(received_df17_even, received_df17_odd, time.time(), time.time()+1)
+                altitude = pms.adsb.altitude(received_df17_even)
 
             received_message = {
                 'drone_id': pms.adsb.icao(received_df17_even),
@@ -135,7 +145,7 @@ def update(frame):
             print(f"SNR: {snr_db:.2f} dB")
             print(f"Message Corrupted: {'Yes' if corrupted else 'No'}")
 
-            # Step 2: Update GCS with the received message
+            # Step 4: Update GCS with the received message
             gcs.receive_update(
                 received_message['drone_id'],
                 (
@@ -145,7 +155,7 @@ def update(frame):
                 )
             )
 
-            # Step 3: Update drone marker position
+            # Step 5: Update drone marker position
             marker = drone_markers[drone.id]
             marker.set_data([received_message['latitude']], [received_message['longitude']])
             marker.set_3d_properties([received_message['altitude']])

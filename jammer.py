@@ -1,29 +1,101 @@
+import numpy as np
 import random
 import time
+from typing import Optional, Dict, Tuple, List, Set
+from math import cos, radians
+
+
+# jamming_type should be one of:
+# "CW"       # Continuous Wave
+# "PULSE"    # Pulsed Noise Jamming (Burst Jamming)
+# "SWEEP"    # Sweeping Jamming (Frequency Hopping Jammer)
+# "DIRECTIONAL" # Directional Jamming (Beamforming Jamming)
 
 class Jammer:
-    """
-    This class simulates jamming by introducing errors, increasing delay, or blocking messages.
-    """
-    def __init__(self, jamming_probability=0.3, noise_intensity=0.7, jamming_power_dbm=-70):
-        self.jamming_probability = jamming_probability
-        self.noise_intensity = noise_intensity  # Higher value increases interference
-        self.jamming_power_dbm = jamming_power_dbm  # Default jamming signal power in dBm
+    def __init__(self,
+                    jamming_type: str,            # Jammer type
+                    jamming_power_dbm: float,     # Base transmission power
+                    center_freq: float = 1090e6,  # Center frequency (Hz) - defaults to ADS-B frequency
 
-    def jam_signal(self, message):
-        """Introduce signal degradation or block messages entirely."""
-        if random.random() < self.jamming_probability:
-            print("[Jammer] Jamming message:", message)
-            if random.random() < self.noise_intensity:
-                print("[Jammer] Message completely lost!")
-                return None, True  # Message is lost
-            else:
-                message['latitude'] += random.uniform(-0.1, 0.1)
-                message['longitude'] += random.uniform(-0.1, 0.1)
-                message['altitude'] += random.uniform(-100, 100)
-                return message, True
-        return message, False
+                    # CW specific parameters
+                    offset_freq: float = 0.0,      # Frequency offset for CW (Hz)
 
-    def jamming_signal_power(self):
-        """Returns the power of the jamming signal in dBm."""
-        return self.jamming_power_dbm
+                    # Pulse noise specific parameters
+                    pulse_width_us: float = 1.0,            # Pulse duration
+                    pulse_repetition_freq: float = 1000.0,  # Pulse frequency
+
+                    # Sweep specific parameters
+                    sweep_range_hz: float = 1e6,   # Frequency sweep range
+                    sweep_time_us: float = 100.0,  # Time for one sweep
+
+                    # Directional specific parameters
+                    position: (0.0, 0.0),             # Jammer position
+                    direction_deg: float = 0.0,       # Beam direction
+                    beam_width_deg: float = 30.0,     # Beam width
+                    antenna_gain_dbi: float = 10.0):  # Antenna gain
+
+        # Common parameters
+        self.jamming_type = jamming_type
+        self.jamming_power_dbm = jamming_power_dbm
+        self.center_freq = center_freq
+        
+        # CW parameters
+        self.offset_freq = offset_freq
+        
+        # Pulse parameters
+        self.pulse_width_us = pulse_width_us
+        self.pulse_repetition_freq = pulse_repetition_freq
+        
+        # Sweep parameters
+        self.sweep_range_hz = sweep_range_hz
+        self.sweep_time_us = sweep_time_us
+        
+        # Directional parameters
+        self.position = position
+        self.direction_deg = direction_deg
+        self.beam_width_deg = beam_width_deg
+        self.antenna_gain_dbi = antenna_gain_dbi
+        
+        # Internal timing
+        self.start_time = time.time()
+
+
+    def calculate_jamming_effect(self, bit_time_us, target_lat, target_lon):
+        # Calculates jamming power at given time and target location
+        # Returns jamming power in dBm
+
+        # bit_time_us is required for PULSE type jammer..(maybe?)
+        # target_lat, target_lon is required for DIRECTIONAL type jammer.
+        
+        if self.jamming_type == "CW":
+            # Constant power at offset frequency
+            freq_difference = abs(self.center_freq + self.offset_freq - 1090e6)
+            if freq_difference < 0.5e6:  # Within 500kHz bandwidth
+                power_reduction = (freq_difference / 0.5e6) * 3
+                return self.jamming_power_dbm - power_reduction
+                
+        if self.jamming_type == "PULSE":
+            # Note: Be sure to set pulse_width_us larger than preamble(8us) period for this to work!!
+            #       So, in reality GCS will not be able to receive the message if the jammer corrupts preamble signal.
+            #       And targetting preamble signal only is more practical because it is only 8 micro seconds of noise,
+            #       which will be easier to deceive anomaly detection.
+            #       I couldn't really modify the simulator to the level where it actually transceives the "Signal".
+            #       However, the timing for preamble signal was implemented.
+            #       This is why we have to set pulse_width_us variable larger than 8 in order for it to work.
+
+            pulse_period = 1e6 / self.pulse_repetition_freq
+            time_in_period = bit_time_us % pulse_period
+            # print(time_in_period, self.pulse_width_us)
+            if time_in_period < self.pulse_width_us:
+                return self.jamming_power_dbm + random.uniform(-2, 2)
+            
+                
+        if self.jamming_type == "SWEEP":
+            # TODO: implement sweeping frequency jamming
+            pass
+
+        if self.jamming_type == "DIRECTIONAL":
+            # TODO: implement directional jamming
+            pass
+            
+        return float('-inf')
