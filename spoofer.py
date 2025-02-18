@@ -94,12 +94,11 @@ class Spoofer:
             self.delta['longitude'] += random.uniform(-noise_factor, noise_factor)
             self.delta['altitude'] += random.uniform(-0.5, 0.5)
 
-            # Above is not required anymore thanks to the nature "error" of ADS-B.
+            # I believe above is not required anymore thanks to the nature "error" of ADS-B.
             # Each 17-bit field for latitude and longitude provides a quantization level of 2^17 = 131,072 discrete values.
             # The precision this translates to depends on the encoding zone since CPR divides the globe into zones...
             # This is about 0.001 ~ 0.002 degrees error by nature.
-            # But since it is implemented, I am leaving it.
-            
+            # But since it is already implemented, I will leave it. 
 
 
             # Apply spoofing changes

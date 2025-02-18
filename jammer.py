@@ -13,9 +13,9 @@ from math import cos, radians
 
 class Jammer:
     def __init__(self,
-                    jamming_type: str,            # Jammer type
-                    jamming_power_dbm: float,     # Base transmission power
-                    center_freq: float = 1090e6,  # Center frequency (Hz) - defaults to ADS-B frequency
+                    jamming_type: str,
+                    jamming_power_dbm: float, # Base transmission power
+                    center_freq: float = 1090e6,      # Center frequency (Hz) - defaults to ADS-B frequency
 
                     # CW specific parameters
                     offset_freq: float = 0.0,      # Frequency offset for CW (Hz)
@@ -29,10 +29,10 @@ class Jammer:
                     sweep_time_us: float = 100.0,  # Time for one sweep
 
                     # Directional specific parameters
-                    position: (0.0, 0.0),             # Jammer position
-                    direction_deg: float = 0.0,       # Beam direction
-                    beam_width_deg: float = 30.0,     # Beam width
-                    antenna_gain_dbi: float = 10.0):  # Antenna gain
+                    position: Tuple[float, float] = (0.0, 0.0),  # Jammer position
+                    direction_deg: float = 0.0,                  # Beam direction
+                    beam_width_deg: float = 30.0,                # Beam width
+                    antenna_gain_dbi: float = 10.0):             # Antenna gain
 
         # Common parameters
         self.jamming_type = jamming_type
@@ -58,7 +58,6 @@ class Jammer:
         
         # Internal timing
         self.start_time = time.time()
-
 
     def calculate_jamming_effect(self, bit_time_us, target_lat, target_lon):
         # Calculates jamming power at given time and target location
