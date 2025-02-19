@@ -14,11 +14,11 @@ from math import cos, radians
 class Jammer:
     def __init__(self,
                     jamming_type: str,
-                    jamming_power_dbm: float, # Base transmission power
+                    jamming_power_dbm: float,         # Base transmission power
                     center_freq: float = 1090e6,      # Center frequency (Hz) - defaults to ADS-B frequency
 
                     # CW specific parameters
-                    offset_freq: float = 0.0,      # Frequency offset for CW (Hz)
+                    offset_freq: float = 0.0,         # Frequency offset for CW (Hz)
 
                     # Pulse noise specific parameters
                     pulse_width_us: float = 1.0,            # Pulse duration

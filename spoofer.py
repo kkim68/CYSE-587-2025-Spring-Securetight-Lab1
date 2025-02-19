@@ -117,7 +117,8 @@ class Spoofer:
 
     def spoof_signal_power(self, snr_db):
         # Set spoofing signal power dynamically based on SNR threshold
-        target_snr = 17.5  # dB        
+        # This approach assumes that the attacker knows the transmission power of the drone
+
+        target_snr = 45  # dB        
         max_interference_power = snr_db - target_snr
-        spoofing_power = max_interference_power - 1.0
-        return spoofing_power
+        return max_interference_power

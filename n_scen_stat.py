@@ -6,6 +6,9 @@ from drone import Drone
 from route import RouteGenerator
 from gcs import GCS
 from adsbchannel import ADSBChannel
+from adsbmessage import ADSBMessage
+import pyModeS as pms
+
 from jammer import Jammer
 from spoofer import Spoofer
 import seaborn as sns
@@ -19,7 +22,7 @@ gcs = GCS(center_lat, center_lon)
 gcs_pos = (center_lat, center_lon)
 
 # Create a RouteGenerator instancz
-route_gen = RouteGenerator(center_lat, center_lon, num_routes=2, waypoints_per_route=5, max_offset=0.02)
+route_gen = RouteGenerator(center_lat, center_lon, num_routes=3, waypoints_per_route=5, max_offset=0.02)
 routes = route_gen.generate_routes()
 
 # Function to initialize drones
@@ -136,8 +139,13 @@ def plot_packet_loss_data(results, colors=None, output_path='results/packet_loss
 # Function to run a simulation scenario
 def run_simulation(jamming=False, spoofing=False, spoof_probability=0.3):
     channel = ADSBChannel()
-    jammer = Jammer(jamming_probability=0.4, noise_intensity=0.8) if jamming else None
-    spoofer = Spoofer(spoof_probability=spoof_probability, fake_drone_id="FAKE-DRONE") if spoofing else None
+    jammer = Jammer(jamming_type="PULSE",jamming_power_dbm=40, center_freq=1090e6, pulse_width_us=15.0, pulse_repetition_freq=2000.0)
+    spoofer = Spoofer(spoof_probability=spoof_probability, fake_drone_id="FAKE-DRONE")
+
+    if not jamming:
+        jammer = None 
+    if not spoofing:
+        spoofer = None
 
     drones = initialize_drones()
 
@@ -157,59 +165,66 @@ def run_simulation(jamming=False, spoofing=False, spoof_probability=0.3):
                 break
 
             send_time = time.time()
-            original_message = {
-                'drone_id': drone.id,
-                'latitude': drone.current_position[0],
-                'longitude': drone.current_position[1],
-                'altitude': drone.current_position[2],
-                'timestamp': send_time
-            }
 
-            received_message, delay_ns, corrupted, snr_db = channel.transmit(
-                original_message, gcs_pos, jammer=jammer, spoofer=spoofer
+            # original_message = {
+            #     'drone_id': drone.id,
+            #     'latitude': drone.current_position[0],
+            #     'longitude': drone.current_position[1],
+            #     'altitude': drone.current_position[2],
+            #     'timestamp': send_time
+            # }
+
+            distance = ADSBChannel._haversine_distance(drone.current_position[0], drone.current_position[1], gcs_pos[0], gcs_pos[1])
+            original_adsb_message = ADSBMessage(drone.id, drone.current_position[2], drone.current_position[0], drone.current_position[1])
+
+            received_df17_even, received_df17_odd, delay_ns, corrupted, snr_db, spoofed, jammed = channel.transmit(
+                distance, original_adsb_message, jammer=jammer, spoofer=spoofer
             )
+
             receive_time = time.time()
             total_messages += 1
 
-            if jamming and jammer:
-                received_message, jammed = jammer.jam_signal(received_message)
-                if jammed and received_message is None:
-                    lost_messages += 1
-                    packet_loss_over_time.append((total_messages, lost_messages / total_messages * 100))
-                    continue
-
-            if spoofing and spoofer:
-                received_message, spoofed = spoofer.spoof_message(received_message)
-
-            gcs.receive_update(
-                received_message['drone_id'],
-                (
-                    received_message['latitude'],
-                    received_message['longitude'],
-                    received_message['altitude']
-                )
-            )
-
-            if corrupted and not (jamming and jammed):
+            if corrupted:
                 lost_messages += 1
+                packet_loss_over_time.append((total_messages, lost_messages / total_messages * 100))
+                continue
+                
+            else:
+                latitude, longitude = pms.adsb.position(received_df17_even, received_df17_odd, time.time(), time.time()+1)
+                altitude = pms.adsb.altitude(received_df17_even)
 
-            packet_loss_over_time.append((total_messages, lost_messages / total_messages * 100))
-            snr_values.append((total_messages, snr_db))
+                received_message = {
+                    'drone_id': pms.adsb.icao(received_df17_even),
+                    'latitude': latitude,
+                    'longitude': longitude,
+                    'altitude': altitude
+                } 
 
-            # Calculate latency in milliseconds
-            latency = (receive_time - send_time) * 1000
-            latency_values.append((total_messages, latency))
+                gcs.receive_update(
+                    received_message['drone_id'],
+                    (
+                        received_message['latitude'],
+                        received_message['longitude'],
+                        received_message['altitude']
+                    )
+                )
 
-            # Calculate throughput (messages per second)
-            elapsed_time = receive_time - start_time
-            throughput = total_messages / elapsed_time
-            throughput_values.append((elapsed_time, throughput))
+                packet_loss_over_time.append((total_messages, lost_messages / total_messages * 100))
+                snr_values.append((total_messages, snr_db))
+
+                # Calculate latency in milliseconds
+                latency = (receive_time - send_time) * 1000
+                latency_values.append((total_messages, latency))
+
+                # Calculate throughput (messages per second)
+                elapsed_time = receive_time - start_time
+                throughput = total_messages / elapsed_time
+                throughput_values.append((elapsed_time, throughput))
 
     return packet_loss_over_time, snr_values, latency_values, throughput_values
 
 
 
-# Run simulations for each scenario and collect results
 # Run simulations for each scenario and collect results
 results = {}
 for scenario, params in scenarios.items():
