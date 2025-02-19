@@ -139,7 +139,7 @@ def plot_packet_loss_data(results, colors=None, output_path='results/packet_loss
 # Function to run a simulation scenario
 def run_simulation(jamming=False, spoofing=False, spoof_probability=0.3):
     channel = ADSBChannel()
-    jammer = Jammer(jamming_type="PULSE",jamming_power_dbm=40, center_freq=1090e6, pulse_width_us=15.0, pulse_repetition_freq=2000.0)
+    jammer = Jammer(jamming_type="PULSE",jamming_power_dbm=50, center_freq=1090e6, pulse_width_us=15.0, pulse_repetition_freq=2000.0)
     spoofer = Spoofer(spoof_probability=spoof_probability, fake_drone_id="FAKE-DRONE")
 
     if not jamming:
