@@ -113,6 +113,7 @@ class ADSBChannel:
                     bit_snr_db = snr_db - jamming_signal_power_dbm
                     
                     # Probability of bit error based on SNR
+                    # The stronger the jammer signal power is, the more likely to flip a bit
                     bit_error_prob = 0.5 * np.exp(-bit_snr_db / 10)
 
                     # Apply bit corruption based on probability
