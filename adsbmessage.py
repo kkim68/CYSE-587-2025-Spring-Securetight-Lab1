@@ -64,6 +64,11 @@ class ADSBMessage:
 	    return (df17_even, df17_odd)
 
 
+
+
+	""" We are now just using pyModeS package...
+	    No need for below function anymore
+
 	@staticmethod
 	def _pack_position(alt: int, lat: int, lon: int):
 	    # Pack position data into 6 bytes (this will become 5-10th bytes)
@@ -80,21 +85,9 @@ class ADSBMessage:
 
 	# This method was taken from:
 	# https://github.com/junzis/pyModeS/blob/e647863b249f7688940f50b097ba6d667dacb69c/src/pyModeS/py_common.py#L35
+
 	@staticmethod
 	def _calculate_crc(mbytes: bytes):
-	    """Mode-S Cyclic Redundancy Check.
-
-	    Detect if bit error occurs in the Mode-S message. When encode option is on,
-	    the checksum is generated.
-
-	    Args:
-	        msg: 28 bytes hexadecimal message string
-	        encode: True to encode the date only and return the checksum
-	    Returns:
-	        int: message checksum, or partity bits (encoder)
-
-	    """
-
 	    # the CRC generator
 	    G = [int("11111111", 2), int("11111010", 2), int("00000100", 2), int("10000000", 2)]
 
@@ -118,3 +111,4 @@ class ADSBMessage:
 	    result = (mbytes[-3] << 16) | (mbytes[-2] << 8) | mbytes[-1]
 
 	    return result
+	"""

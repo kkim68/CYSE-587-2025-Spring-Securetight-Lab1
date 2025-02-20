@@ -61,6 +61,7 @@ class ADSBChannel:
         # - delay_ns: Propagation delay
         # - corrupted: Message has been corrupted or not
         # - snr_db: Signal-to-noise ratio
+        # - for_stat_spoofed, for_stat_jammed: These are for n_scen_stat.py; flags for if signal was spoofed/jammed
 
         delay_seconds = distance / self.light_speed
         delay_ns = np.round(delay_seconds * 1e9, decimals=2)
@@ -111,7 +112,7 @@ class ADSBChannel:
                      # Calculate bit-level SNR
                     jamming_signal_power_dbm = 10 * np.log10(10**(noise_power_dbm / 10) + 10**(jamming_power / 10))
                     bit_snr_db = snr_db - jamming_signal_power_dbm
-                    
+
                     # Probability of bit error based on SNR
                     # The stronger the jammer signal power is, the more likely to flip a bit
                     bit_error_prob = 0.5 * np.exp(-bit_snr_db / 10)

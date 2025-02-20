@@ -50,9 +50,10 @@ drones = [
 channel = ADSBChannel()
 
 #jammer = Jammer(jamming_type="CW", jamming_power_dbm=45, center_freq=1090e6, offset_freq=0.2e6)
-#jammer = Jammer(jamming_type="PULSE",jamming_power_dbm=45, center_freq=1090e6, pulse_width_us=15.0, pulse_repetition_freq=2000.0)
-jammer = None
-spoofer = Spoofer(spoof_probability=0.7, fake_drone_id="FAKE-DRONE")
+jammer = Jammer(jamming_type="PULSE",jamming_power_dbm=45, center_freq=1090e6, pulse_width_us=15.0, pulse_repetition_freq=2000.0)
+#jammer = None
+#spoofer = Spoofer(spoof_probability=0.7, fake_drone_id="FAKE-DRONE")
+spoofer = None
 
 
 # Create a figure for 3D plotting
@@ -95,7 +96,10 @@ def update(frame):
             # Original (ideal) message
 
             
-            original_message = ADSBMessage(drone.id, drone.current_position[2], drone.current_position[0], drone.current_position[1])
+            # We now use actual ADS-B format for broadcasting
+            original_message = ADSBMessage(
+                drone.id, drone.current_position[2], drone.current_position[0], drone.current_position[1]
+            )
             
             original_message_for_print = {
                 'drone_id': drone.id,
@@ -106,10 +110,16 @@ def update(frame):
             }
             
 
-            # Step 1: Calculate basic signal parameters
-            distance = ADSBChannel._haversine_distance(drone.current_position[0], drone.current_position[1], gcs_pos[0], gcs_pos[1])
+            # Step 1: We now calculate distance before signal transmission... 
+            #         Since we're sending the encoded hexadecimal string, 
+            #         it's a waste to decode the message right after encoding to calculate the distance.
 
-            # Step 2: Simulate transmission from the drone to the GCS
+            distance = ADSBChannel._haversine_distance(
+                drone.current_position[0], drone.current_position[1], gcs_pos[0], gcs_pos[1]
+            )
+
+
+            # Step 2: Simulate transmission from the drone to the GCS.
             received_df17_even, received_df17_odd, delay_ns, corrupted, snr_db, _, _ = channel.transmit(
                 distance, original_message, jammer=jammer, spoofer=spoofer
             )
@@ -118,7 +128,8 @@ def update(frame):
                 print(f"Drone {drone.id} message lost during transmission.")
                 continue
 
-            # Step 3: Decode DF17 message at GCS
+
+            # Step 3: Decode ADS-B(DF17) message at GCS.
             #         If message is corrupted by the jammer, zero out position value.
             #         This is a simulation of un-decodable df17 message.
             #         Note: Message will never be "corrupted" by the spoofer, since the spoofer re-calculates parity bits.
