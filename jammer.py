@@ -90,9 +90,16 @@ class Jammer:
             
                 
         if self.jamming_type == "SWEEP":
-            # TODO: implement sweeping frequency jamming
-            pass
+            # Implement sweeping frequency jamming
+            elapsed_time = (time.time() - self.start_time) * 1e6  # Convert to microseconds
+            sweep_position = (elapsed_time % self.sweep_time_us) / self.sweep_time_us
+            current_freq = self.center_freq - (self.sweep_range_hz / 2) + (sweep_position * self.sweep_range_hz)
+            freq_difference = abs(current_freq - 1090e6)
+            if freq_difference < 0.5e6:  # Within 500kHz bandwidth
+                power_reduction = (freq_difference / 0.5e6) * 3
+                return self.jamming_power_dbm - power_reduction + random.uniform(-1, 1)
 
+        
         if self.jamming_type == "DIRECTIONAL":
             # TODO: implement directional jamming
             pass
