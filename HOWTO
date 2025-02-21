@@ -1,0 +1,20 @@
+
+The only package to be installed to run the simulation is pymodes:
+ 
+ $> pip install pymodes
+          or 
+ $> python -m pip install pymodes
+
+
+---------------------------
+
+We used external 3rd party package called "PyModeS"
+  * https://github.com/junzis/pyModeS
+
+This package is a ADS-B/Mode-S decoder that helps decoding a message (hexadecimal string) in ADS-B format.
+
+---------------------------
+
+The source code we used for encoding an ADS-B message was taken from "ADSB-Out" package.
+  * https://github.com/nzkarit/ADSB-Out/blob/master/ModeSLocation.py
+
