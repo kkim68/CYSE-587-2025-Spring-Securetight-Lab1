@@ -77,7 +77,7 @@ class ADSBChannel:
         result_df17_even, result_df17_odd = original_message.encode()
         snr_db = rx_power_dbm - (noise_power_dbm + self.noise_figure_db)
 
-        jamming_signal_power_dbm = 0
+        effective_jamming_signal_power_dbm = 0
         effective_spoofing_signal_power_dbm = 0
 
         for_stat_jammed = False
@@ -92,7 +92,6 @@ class ADSBChannel:
                 effective_spoofing_signal_power_dbm = 10 * np.log10(10**(noise_power_dbm / 10) + 10**(spoofing_signal_power_dbm / 10))
                 result_df17_even = spoofed_df17_even
                 result_df17_odd  = spoofed_df17_odd
-                #time.sleep(1e-4)
                 for_stat_spoofed = True
 
         # Apply jamming effects if a spoofer is present
@@ -110,8 +109,8 @@ class ADSBChannel:
                 
                 if jamming_power > float('-inf'):
                      # Calculate bit-level SNR
-                    jamming_signal_power_dbm = 10 * np.log10(10**(noise_power_dbm / 10) + 10**(jamming_power / 10))
-                    bit_snr_db = snr_db - jamming_signal_power_dbm
+                    effective_jamming_signal_power_dbm = 10 * np.log10(10**(noise_power_dbm / 10) + 10**(jamming_power / 10))
+                    bit_snr_db = snr_db - effective_jamming_signal_power_dbm
 
                     # Probability of bit error based on SNR
                     # The stronger the jammer signal power is, the more likely to flip a bit
@@ -124,7 +123,7 @@ class ADSBChannel:
                         for_stat_jammed = True
 
         # Calculate overall SNR
-        snr_db -= jamming_signal_power_dbm
+        snr_db -= effective_jamming_signal_power_dbm
         snr_db -= effective_spoofing_signal_power_dbm
 
         # Since we are now using the bit-by-bit transmission and have ability to corrupt some bits within the message,

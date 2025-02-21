@@ -28,23 +28,21 @@ class Spoofer:
         self.count = 0
 
     def spoof_message(self, df17_even, df17_odd):        
-        latitude, longitude = pms.adsb.position(df17_even, df17_odd, time.time(), time.time()+1)
-        altitude = pms.adsb.altitude(df17_even)
-        # print(latitude, longitude, altitude)
-
-        message = {
-            'drone_id': pms.adsb.icao(df17_even),
-            'latitude': latitude,
-            'longitude': longitude,
-            'altitude': altitude
-        } 
-
-        """Modify a real drone message or inject a fake drone."""
         if random.random() < self.spoof_probability:
-            print("[Spoofer] Spoofing message:", message)
+            latitude, longitude = pms.adsb.position(df17_even, df17_odd, time.time(), time.time()+1)
+            altitude = pms.adsb.altitude(df17_even)
+
+            message = {
+                'drone_id': pms.adsb.icao(df17_even),
+                'latitude': latitude,
+                'longitude': longitude,
+                'altitude': altitude
+            } 
+
+            #print("[Spoofer] Spoofing message:", message)
             spoofed_message = self.calculate_gradual_spoof(message)
             spoofed_message['drone_id'] = message['drone_id']
-            print("[Spoofer] Spoofed message:", spoofed_message)
+            #print("[Spoofer] Spoofed message:", spoofed_message)
 
             spoofed_df17_even, spoofed_df17_odd = ADSBMessage(
                 spoofed_message['drone_id'], spoofed_message['altitude'], spoofed_message['latitude'], spoofed_message['longitude']
@@ -119,6 +117,6 @@ class Spoofer:
         # Set spoofing signal power dynamically based on SNR threshold
         # This approach assumes that the attacker knows the transmission power of the drone
 
-        target_snr = 45  # dB        
+        target_snr = 30  # dB        
         max_interference_power = snr_db - target_snr
         return max_interference_power
