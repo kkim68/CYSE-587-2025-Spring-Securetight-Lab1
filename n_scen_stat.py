@@ -52,6 +52,26 @@ scenarios = {
     "Aggressive Spoofing": {"jamming": False, "spoofing": True, "spoof_probability": 0.7}
 }
 
+
+def plot_bit_sequence_jammer_power(jammer_data):
+    plt.figure(figsize=(12, 6))
+
+    for jammer in jammer_data.items():
+        jammer_name = jammer[0]
+        jammer_values = jammer[1]
+        times, bit_power_jammer_values = zip(*jammer_values)
+        plt.plot(times, bit_power_jammer_values, label=jammer_name)
+
+    plt.xlabel('Bit Timing in message')
+    plt.ylabel('Jammer Power')
+    plt.title('Jammer Power Representation over bit sequence')
+    plt.legend()
+    plt.grid(True)
+    plt.savefig('results/jammer_power.png')
+    plt.show()
+
+
+
 def plot_snr_data(results):
     """
     Plots SNR data as both line plots and box plots for each scenario.
@@ -59,7 +79,6 @@ def plot_snr_data(results):
     Parameters:
         results (dict): Dictionary containing SNR data for each scenario.
     """
-   
 
     # Box Plot
     plt.figure(figsize=(12, 6))
@@ -177,7 +196,7 @@ def run_simulation(jamming=False, spoofing=False, spoof_probability=0.3):
             distance = ADSBChannel._haversine_distance(drone.current_position[0], drone.current_position[1], gcs_pos[0], gcs_pos[1])
             original_adsb_message = ADSBMessage(drone.id, drone.current_position[2], drone.current_position[0], drone.current_position[1])
 
-            received_df17_even, received_df17_odd, delay_ns, corrupted, snr_db, spoofed, jammed = channel.transmit(
+            received_df17_even, received_df17_odd, delay_ns, corrupted, snr_db, spoofed, jammed, _ = channel.transmit(
                 distance, original_adsb_message, jammer=jammer, spoofer=spoofer
             )
 
@@ -225,8 +244,60 @@ def run_simulation(jamming=False, spoofing=False, spoof_probability=0.3):
     return packet_loss_over_time, snr_values, latency_values, throughput_values
 
 
+# Function to run a simulation scenario
+def run_simulation_jammer():
+    jammer_data = {}
+
+    channel = ADSBChannel()
+        
+    jammer_route_gen = RouteGenerator(center_lat, center_lon, num_routes=1, waypoints_per_route=2, max_offset=0.02)
+    jammer_routes = jammer_route_gen.generate_routes()
+
+
+    
+
+    jammers = [
+        Jammer(jamming_type="CW"   , jamming_power_dbm=45, center_freq=1090e6, offset_freq=0.2e6),
+        Jammer(jamming_type="PULSE", jamming_power_dbm=35, center_freq=1090e6, pulse_width_us=15.0, pulse_repetition_freq=40000.0),
+        Jammer(jamming_type="SWEEP", jamming_power_dbm=25, center_freq=1090e6, sweep_range_hz=1e6, sweep_time_us=100.0)
+    ]
+
+    for jammer in jammers:
+        bit_power_jammer_data = None
+
+        drone = Drone(
+                id=f"AA0000",
+                drone_type="AA0000",
+                acceleration_rate=2.0,
+                climb_rate=3.0,
+                speed=10.0,
+                position_error=2.0,
+                altitude_error=1.0,
+                battery_consume_rate=0.05,
+                battery_capacity=10.0,
+                route=jammer_routes[0]
+        )
+
+        while True:
+
+            status = drone.calculate_navigation(1)
+            if status in [-1, -2, 0]:
+                break
+
+            distance = ADSBChannel._haversine_distance(drone.current_position[0], drone.current_position[1], gcs_pos[0], gcs_pos[1])
+            original_adsb_message = ADSBMessage(drone.id, drone.current_position[2], drone.current_position[0], drone.current_position[1])
+
+            _, _, _, _, _, _, _, bit_power_jammer_data = channel.transmit(
+                distance, original_adsb_message, jammer=jammer, spoofer=None
+            )
+
+        jammer_data[jammer.jamming_type] = bit_power_jammer_data
+
+    return jammer_data
+
 
 # Run simulations for each scenario and collect results
+
 results = {}
 for scenario, params in scenarios.items():
     print(f"Running scenario: {scenario}")
@@ -238,9 +309,14 @@ for scenario, params in scenarios.items():
         'throughput': throughput_data
     }
 
+
+bit_power_jammer_data = run_simulation_jammer()
+
 # Ensure the 'results' directory exists
 if not os.path.exists('results'):
     os.makedirs('results')
+
+plot_bit_sequence_jammer_power(bit_power_jammer_data)
 
 # Plotting packet loss over time for each scenario
 plot_packet_loss_data(results)
@@ -253,3 +329,5 @@ plot_latency_data(results)
 
 # Plotting Throughput over time for each scenario
 plot_throughput_data(results)
+
+

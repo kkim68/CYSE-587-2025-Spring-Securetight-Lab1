@@ -63,15 +63,39 @@ class Jammer:
         # Calculates jamming power at given time and target location
         # Returns jamming power in dBm
 
+        """
+            power_reduction = (freq_difference / 0.5e6) * 3
+            This formula creates a simple linear relationship where:
+
+            freq_difference is how far the jammer frequency is from 1090 MHz
+            0.5e6 (500 kHz) is used as a reference bandwidth
+            3 is the maximum reduction in dB
+
+            So it works like this:
+
+            If freq_difference = 0 Hz: (0/500kHz) * 3 = 0 dB reduction
+            If freq_difference = 250kHz: (250kHz/500kHz) * 3 = 1.5 dB reduction
+            If freq_difference = 500kHz: (500kHz/500kHz) * 3 = 3 dB reduction
+
+            This assumes power reduction increases linearly with frequency difference...
+            Every 167kHz difference causes 1dB reduction (500kHz/3dB)
+            Maximum reduction is capped at 3dB at 500kHz offset
+
+            This is oversimplified because real Radio Frequency filters don't have this linear response.
+        """
+
         # bit_time_us is required for PULSE type jammer..(maybe?)
         # target_lat, target_lon is required for DIRECTIONAL type jammer.
         
         if self.jamming_type == "CW":
-            # Constant power at offset frequency
+            # Constant power at offset frequency.
+            # We don't need bit_time_us for CW.. since it just steadily sends a signal.
+
             freq_difference = abs(self.center_freq + self.offset_freq - 1090e6)
             if freq_difference < 0.5e6:  # Within 500kHz bandwidth
                 power_reduction = (freq_difference / 0.5e6) * 3
-                return self.jamming_power_dbm - power_reduction
+                return self.jamming_power_dbm - power_reduction - + random.uniform(-0.1, 0.1)
+
                 
         if self.jamming_type == "PULSE":
             # Note: Be sure to set pulse_width_us larger than preamble(8us) period for this to work!!
@@ -84,16 +108,18 @@ class Jammer:
 
             pulse_period = 1e6 / self.pulse_repetition_freq
             time_in_period = bit_time_us % pulse_period
-            # print(time_in_period, self.pulse_width_us)
             if time_in_period < self.pulse_width_us:
                 return self.jamming_power_dbm + random.uniform(-2, 2)
             
                 
         if self.jamming_type == "SWEEP":
             # Implement sweeping frequency jamming
+            # Simulates frequency of the signal changes overtime
+
             elapsed_time = (time.time() - self.start_time) * 1e6  # Convert to microseconds
             sweep_position = (elapsed_time % self.sweep_time_us) / self.sweep_time_us
             current_freq = self.center_freq - (self.sweep_range_hz / 2) + (sweep_position * self.sweep_range_hz)
+
             freq_difference = abs(current_freq - 1090e6)
             if freq_difference < 0.5e6:  # Within 500kHz bandwidth
                 power_reduction = (freq_difference / 0.5e6) * 3

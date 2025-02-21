@@ -61,7 +61,12 @@ class ADSBChannel:
         # - delay_ns: Propagation delay
         # - corrupted: Message has been corrupted or not
         # - snr_db: Signal-to-noise ratio
-        # - for_stat_spoofed, for_stat_jammed: These are for n_scen_stat.py; flags for if signal was spoofed/jammed
+        # - for_stat_spoofed, for_stat_jammed
+        #    : These are for n_scen_stat.py; flags for if signal was spoofed/jammed
+        # - for_stat_bit_power_jammer 
+        #    : This is for n_scen_stat.py; shows how jammer creates its' noise in time sequence
+
+        for_stat_bit_power_jammer = []
 
         delay_seconds = distance / self.light_speed
         delay_ns = np.round(delay_seconds * 1e9, decimals=2)
@@ -122,6 +127,11 @@ class ADSBChannel:
                         result_df17_odd = self.corrupt_bit(result_df17_odd, bit_index)        
                         for_stat_jammed = True
 
+                    for_stat_bit_power_jammer.append((bit_index, jamming_power))
+                    
+                else:
+                    for_stat_bit_power_jammer.append((bit_index, 0))
+
         # Calculate overall SNR
         snr_db -= effective_jamming_signal_power_dbm
         snr_db -= effective_spoofing_signal_power_dbm
@@ -144,7 +154,7 @@ class ADSBChannel:
         if snr_db < 0 or random.random() < self.error_rate:
             corrupted = True  
 
-        return result_df17_even, result_df17_odd, delay_ns, corrupted, snr_db, for_stat_spoofed, for_stat_jammed
+        return result_df17_even, result_df17_odd, delay_ns, corrupted, snr_db, for_stat_spoofed, for_stat_jammed, for_stat_bit_power_jammer
 
 
     # def corrupt_message(self, message):

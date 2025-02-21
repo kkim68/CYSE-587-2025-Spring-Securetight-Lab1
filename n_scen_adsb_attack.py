@@ -120,7 +120,7 @@ def update(frame):
 
 
             # Step 2: Simulate transmission from the drone to the GCS.
-            received_df17_even, received_df17_odd, delay_ns, corrupted, snr_db, _, _ = channel.transmit(
+            received_df17_even, received_df17_odd, delay_ns, corrupted, snr_db, _, _, _ = channel.transmit(
                 distance, original_message, jammer=jammer, spoofer=spoofer
             )
 
