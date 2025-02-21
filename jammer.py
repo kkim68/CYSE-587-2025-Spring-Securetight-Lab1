@@ -115,7 +115,6 @@ class Jammer:
                 for_stat_bit_frequency_jammer.append((bit_time_us, self.center_freq))
                 return self.jamming_power_dbm + random.uniform(-2, 2)
             else:
-                pass
                 for_stat_bit_frequency_jammer.append((bit_time_us, float('-inf')))
             
                 
