@@ -2,8 +2,7 @@ import numpy as np
 import random
 import time
 from typing import Optional, Dict, Tuple, List, Set
-from math import cos, radians
-
+import math
 
 # jamming_type should be one of:
 # "CW"       # Continuous Wave
@@ -29,10 +28,10 @@ class Jammer:
                     sweep_time_us: float = 100.0,  # Time for one sweep
 
                     # Directional specific parameters
-                    position: Tuple[float, float] = (0.0, 0.0),  # Jammer position
-                    direction_deg: float = 0.0,                  # Beam direction
-                    beam_width_deg: float = 30.0,                # Beam width
-                    antenna_gain_dbi: float = 10.0):             # Antenna gain
+                    position: Tuple[float, float] = (0.0, 0.0),     # Jammer position
+                    gcs_position: Tuple[float, float] = (0.0, 0.0), # GCS position
+                    beam_width_deg: float = 30.0,                   # Beam width
+                    antenna_gain_dbi: float = 10.0):                # Antenna gain
 
         # Common parameters
         self.jamming_type = jamming_type
@@ -52,12 +51,46 @@ class Jammer:
         
         # Directional parameters
         self.position = position
-        self.direction_deg = direction_deg
+        self.gcs_position = gcs_position
         self.beam_width_deg = beam_width_deg
         self.antenna_gain_dbi = antenna_gain_dbi
-        
+        self.direction_deg = self.calculate_bearing(self.position, self.gcs_position, uncertainity=True)
+
         # Internal timing
         self.start_time = time.time()
+
+
+    # This is only for beamforming jammer.
+    # Calculate azimuth to eventually align the jammer's beam to the gcs.
+    # "Uncertainty" means that the attacker is setting the antenna orientation by eye measurement, which is not accurate.
+    def calculate_bearing(self, jammer_position, gcs_position, uncertainity=False):
+        # Calculate the bearing (azimuth) from the jammer to the GCS.
+        lat1, lon1 = np.radians(jammer_position)
+        lat2, lon2 = np.radians(gcs_position)
+        delta_lon = lon2 - lon1
+
+        # sin(Δlon) * cos(lat2) gives us the east-west component
+        x = math.sin(delta_lon) * math.cos(lat2)
+
+        # cos(lat1) * sin(lat2) - sin(lat1) * coss(lat2) * cos(Δlon)
+        # gives us the north-south component            
+        y = math.cos(lat1) * math.sin(lat2) - math.sin(lat1) * math.cos(lat2) * math.cos(delta_lon)
+
+        # Calculate initial bearing using arctan of y/x components...
+        bearing = math.atan2(x, y)
+
+        # Convert bearing from radians to degrees
+        bearing_deg = math.degrees(bearing)
+
+        # This is the optimal direction towards the GCS!
+        bearing_normalized = (bearing_deg + 360) % 360
+
+        if uncertainity:
+            bearing_normalized = bearing_normalized + random.uniform(0, self.beam_width_deg / 2)
+
+        return bearing_normalized
+
+
 
     def calculate_jamming_effect(self, bit_time_us, target_lat, target_lon, for_stat_bit_frequency_jammer):
         # Calculates jamming power at given time and target location
@@ -134,9 +167,30 @@ class Jammer:
                 return self.jamming_power_dbm - power_reduction + random.uniform(-1, 1)
 
 
-        
+        # Reference:
+        # https://www.youtube.com/watch?v=A1n5Hhwtz78&t=269s
+        # https://www.youtube.com/watch?v=xMP7_PDMSC8
+
         if self.jamming_type == "DIRECTIONAL":
-            # TODO: implement directional jamming
-            pass
+            for_stat_bit_frequency_jammer.append((bit_time_us, self.center_freq))
+
+            # Calculate the exact azimuth
+            jammer_to_gcs_azimuth = self.calculate_bearing(self.position, self.gcs_position, uncertainity=False) 
+
+            angle_diff = abs((jammer_to_gcs_azimuth - self.direction_deg + 180) % 360 - 180)
+            
+            if angle_diff > self.beam_width_deg / 2:
+                return -20.0  # Outside the beam
+            
+            # Scale angle_diff to range [0,1] where 0 is center and 1 is edge of beam
+            
+            # Now calculate antenna gain based on direction to target...    
+            relative_gain = math.cos(math.radians(angle_diff) * 4) 
+            # Note: Multiplying 4 here means there are more power loss on edge of the beam
+            #       Also this means that maximum beam width should be pi/4(45 degrees)
+            #       Try to draw cosine graph if you don't understand.. :)
+
+            final_gain = self.antenna_gain_dbi * relative_gain
+            return self.jamming_power_dbm + final_gain            
             
         return float('-inf')

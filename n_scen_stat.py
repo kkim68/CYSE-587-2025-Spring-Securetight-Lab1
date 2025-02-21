@@ -2,6 +2,8 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+import random
+
 from drone import Drone
 from route import RouteGenerator
 from gcs import GCS
@@ -20,6 +22,8 @@ center_lat, center_lon = 38.8977, -77.0365  # White House location
 # Initialize GCS
 gcs = GCS(center_lat, center_lon)
 gcs_pos = (center_lat, center_lon)
+jammer_pos = (38.7600, -77.1000) # This is about 1km southwest form GCS position...
+
 
 # Create a RouteGenerator instancz
 route_gen = RouteGenerator(center_lat, center_lon, num_routes=3, waypoints_per_route=5, max_offset=0.02)
@@ -57,18 +61,17 @@ def plot_bit_sequence_jammer_power(jammer_data):
     plt.figure(figsize=(12, 6))
 
     for jammer in jammer_data.items():
-        print(jammer)
         jammer_name = jammer[0]
         jammer_values = jammer[1]
         times, bit_power_jammer_values = zip(*jammer_values['bit_power'])
         plt.plot(times, bit_power_jammer_values, label=jammer_name)
 
     plt.xlabel('Bit Timing in a Message (bit)')
-    plt.ylabel('Jamming Power (dBm)')
-    plt.title('Jammer Power Representation over Bit Sequence')
+    plt.ylabel('RX Power (dBm)')
+    plt.title('RX Power in GCS over Bit-Sequence for Different jammers')
     plt.legend()
     plt.grid(True)
-    plt.savefig('results/jammer_power.png')
+    plt.savefig('results/RX_Power_jammer.png')
     plt.show()
 
 
@@ -86,8 +89,6 @@ def plot_bit_sequence_jammer_power(jammer_data):
     plt.grid(True)
     plt.savefig('results/jammer_freq.png')
     plt.show()
-
-
 
 
 
@@ -278,8 +279,11 @@ def run_simulation_jammer():
     jammers = [
         Jammer(jamming_type="CW"   , jamming_power_dbm=45, center_freq=1090e6, offset_freq=0.2e6),
         Jammer(jamming_type="PULSE", jamming_power_dbm=35, center_freq=1090e6, pulse_width_us=15.0, pulse_repetition_freq=40000.0),
-        Jammer(jamming_type="SWEEP", jamming_power_dbm=25, center_freq=1090e6, sweep_range_hz=1e6, sweep_time_us=100.0)
+        Jammer(jamming_type="SWEEP", jamming_power_dbm=25, center_freq=1090e6, sweep_range_hz=1e6, sweep_time_us=100.0),
+        Jammer(jamming_type="DIRECTIONAL", jamming_power_dbm=45, center_freq=1090e6 + 10e3, 
+            gcs_position=gcs_pos, position=jammer_pos, beam_width_deg=20.0, antenna_gain_dbi=15.0)
     ]
+    # For Directional Jammer, I added 10kHz intensionally for graph to be distinguishable
 
     for jammer in jammers:
         bit_power_jammer_data = None
@@ -319,6 +323,7 @@ def run_simulation_jammer():
 
 
 # Run simulations for each scenario and collect results
+
 results = {}
 for scenario, params in scenarios.items():
     print(f"Running scenario: {scenario}")
@@ -329,7 +334,6 @@ for scenario, params in scenarios.items():
         'latency': latency_data,
         'throughput': throughput_data
     }
-
 jammer_data = run_simulation_jammer()
 
 # Ensure the 'results' directory exists
@@ -349,5 +353,3 @@ plot_latency_data(results)
 
 # Plotting Throughput over time for each scenario
 plot_throughput_data(results)
-
-

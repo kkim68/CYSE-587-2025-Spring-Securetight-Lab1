@@ -49,11 +49,14 @@ drones = [
 # Initialize the communication channel, jammer, and spoofer
 channel = ADSBChannel()
 
-#jammer = Jammer(jamming_type="CW", jamming_power_dbm=45, center_freq=1090e6, offset_freq=0.2e6)
+# jammer = Jammer(jamming_type="CW", jamming_power_dbm=45, center_freq=1090e6, offset_freq=0.2e6)
 jammer = Jammer(jamming_type="PULSE",jamming_power_dbm=45, center_freq=1090e6, pulse_width_us=15.0, pulse_repetition_freq=2000.0)
-#jammer = None
-#spoofer = Spoofer(spoof_probability=0.7, fake_drone_id="FAKE-DRONE")
-spoofer = None
+# jammer = Jammer(jamming_type="SWEEP", jamming_power_dbm=25, center_freq=1090e6, sweep_range_hz=1e6, sweep_time_us=100.0)
+# jammer = Jammer(jamming_type="DIRECTIONAL", jamming_power_dbm=45, center_freq=1090e6, position=gcs_pos, beam_width_deg=30.0, antenna_gain_dbi=15.0)
+# jammer = None
+
+spoofer = Spoofer(spoof_probability=0.7, fake_drone_id="")
+# spoofer = None
 
 
 # Create a figure for 3D plotting

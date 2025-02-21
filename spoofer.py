@@ -11,7 +11,7 @@ class Spoofer:
     or injecting entirely fake drones into the system.
     """
 
-    def __init__(self, spoof_probability=0.3, fake_drone_id="FAKE123"):
+    def __init__(self, spoof_probability=0.3, fake_drone_id=""):
         self.spoof_probability = spoof_probability
         self.fake_drone_id = fake_drone_id
 
