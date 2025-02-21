@@ -57,18 +57,37 @@ def plot_bit_sequence_jammer_power(jammer_data):
     plt.figure(figsize=(12, 6))
 
     for jammer in jammer_data.items():
+        print(jammer)
         jammer_name = jammer[0]
         jammer_values = jammer[1]
-        times, bit_power_jammer_values = zip(*jammer_values)
+        times, bit_power_jammer_values = zip(*jammer_values['bit_power'])
         plt.plot(times, bit_power_jammer_values, label=jammer_name)
 
-    plt.xlabel('Bit Timing in message')
-    plt.ylabel('Jammer Power')
-    plt.title('Jammer Power Representation over bit sequence')
+    plt.xlabel('Bit Timing in a Message (bit)')
+    plt.ylabel('Jamming Power (dBm)')
+    plt.title('Jammer Power Representation over Bit Sequence')
     plt.legend()
     plt.grid(True)
     plt.savefig('results/jammer_power.png')
     plt.show()
+
+
+    plt.figure(figsize=(12, 6))
+    for jammer in jammer_data.items():
+        jammer_name = jammer[0]
+        jammer_values = jammer[1]
+        times, bit_power_jammer_values = zip(*jammer_values['bit_frequency'])
+        plt.plot(times, bit_power_jammer_values, label=jammer_name)
+
+    plt.xlabel('Bit Timing in a Message (us)')
+    plt.ylabel('Jamming Frequency (MHz)')
+    plt.title('Jammer Frequency Representation over Bit Time')
+    plt.legend()
+    plt.grid(True)
+    plt.savefig('results/jammer_freq.png')
+    plt.show()
+
+
 
 
 
@@ -196,7 +215,7 @@ def run_simulation(jamming=False, spoofing=False, spoof_probability=0.3):
             distance = ADSBChannel._haversine_distance(drone.current_position[0], drone.current_position[1], gcs_pos[0], gcs_pos[1])
             original_adsb_message = ADSBMessage(drone.id, drone.current_position[2], drone.current_position[0], drone.current_position[1])
 
-            received_df17_even, received_df17_odd, delay_ns, corrupted, snr_db, spoofed, jammed, _ = channel.transmit(
+            received_df17_even, received_df17_odd, delay_ns, corrupted, snr_db, spoofed, jammed, _, _ = channel.transmit(
                 distance, original_adsb_message, jammer=jammer, spoofer=spoofer
             )
 
@@ -278,6 +297,8 @@ def run_simulation_jammer():
                 route=jammer_routes[0]
         )
 
+        jammer_data[jammer.jamming_type] = {}
+
         while True:
 
             status = drone.calculate_navigation(1)
@@ -287,17 +308,17 @@ def run_simulation_jammer():
             distance = ADSBChannel._haversine_distance(drone.current_position[0], drone.current_position[1], gcs_pos[0], gcs_pos[1])
             original_adsb_message = ADSBMessage(drone.id, drone.current_position[2], drone.current_position[0], drone.current_position[1])
 
-            _, _, _, _, _, _, _, bit_power_jammer_data = channel.transmit(
+            _, _, _, _, _, _, _, bit_power_jammer_data, bit_frequency_jammer_data = channel.transmit(
                 distance, original_adsb_message, jammer=jammer, spoofer=None
             )
 
-        jammer_data[jammer.jamming_type] = bit_power_jammer_data
+        jammer_data[jammer.jamming_type]['bit_power'] = bit_power_jammer_data
+        jammer_data[jammer.jamming_type]['bit_frequency'] = bit_frequency_jammer_data
 
     return jammer_data
 
 
 # Run simulations for each scenario and collect results
-
 results = {}
 for scenario, params in scenarios.items():
     print(f"Running scenario: {scenario}")
@@ -309,14 +330,13 @@ for scenario, params in scenarios.items():
         'throughput': throughput_data
     }
 
-
-bit_power_jammer_data = run_simulation_jammer()
+jammer_data = run_simulation_jammer()
 
 # Ensure the 'results' directory exists
 if not os.path.exists('results'):
     os.makedirs('results')
 
-plot_bit_sequence_jammer_power(bit_power_jammer_data)
+plot_bit_sequence_jammer_power(jammer_data)
 
 # Plotting packet loss over time for each scenario
 plot_packet_loss_data(results)

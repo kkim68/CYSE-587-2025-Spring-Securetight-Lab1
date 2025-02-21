@@ -59,7 +59,7 @@ class Jammer:
         # Internal timing
         self.start_time = time.time()
 
-    def calculate_jamming_effect(self, bit_time_us, target_lat, target_lon):
+    def calculate_jamming_effect(self, bit_time_us, target_lat, target_lon, for_stat_bit_frequency_jammer):
         # Calculates jamming power at given time and target location
         # Returns jamming power in dBm
 
@@ -92,9 +92,12 @@ class Jammer:
             # We don't need bit_time_us for CW.. since it just steadily sends a signal.
 
             freq_difference = abs(self.center_freq + self.offset_freq - 1090e6)
+            for_stat_bit_frequency_jammer.append((bit_time_us, self.center_freq + self.offset_freq))
+
             if freq_difference < 0.5e6:  # Within 500kHz bandwidth
                 power_reduction = (freq_difference / 0.5e6) * 3
                 return self.jamming_power_dbm - power_reduction - + random.uniform(-0.1, 0.1)
+
 
                 
         if self.jamming_type == "PULSE":
@@ -109,7 +112,11 @@ class Jammer:
             pulse_period = 1e6 / self.pulse_repetition_freq
             time_in_period = bit_time_us % pulse_period
             if time_in_period < self.pulse_width_us:
+                for_stat_bit_frequency_jammer.append((bit_time_us, self.center_freq))
                 return self.jamming_power_dbm + random.uniform(-2, 2)
+            else:
+                pass
+                for_stat_bit_frequency_jammer.append((bit_time_us, float('-inf')))
             
                 
         if self.jamming_type == "SWEEP":
@@ -121,9 +128,12 @@ class Jammer:
             current_freq = self.center_freq - (self.sweep_range_hz / 2) + (sweep_position * self.sweep_range_hz)
 
             freq_difference = abs(current_freq - 1090e6)
+            for_stat_bit_frequency_jammer.append((bit_time_us, current_freq))
+
             if freq_difference < 0.5e6:  # Within 500kHz bandwidth
                 power_reduction = (freq_difference / 0.5e6) * 3
                 return self.jamming_power_dbm - power_reduction + random.uniform(-1, 1)
+
 
         
         if self.jamming_type == "DIRECTIONAL":

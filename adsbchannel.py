@@ -67,6 +67,7 @@ class ADSBChannel:
         #    : This is for n_scen_stat.py; shows how jammer creates its' noise in time sequence
 
         for_stat_bit_power_jammer = []
+        for_stat_bit_frequency_jammer = []
 
         delay_seconds = distance / self.light_speed
         delay_ns = np.round(delay_seconds * 1e9, decimals=2)
@@ -109,7 +110,8 @@ class ADSBChannel:
                 jamming_power = jammer.calculate_jamming_effect(
                     bit_start_us,
                     original_message.latitude,
-                    original_message.longitude
+                    original_message.longitude,
+                    for_stat_bit_frequency_jammer
                 )
                 
                 if jamming_power > float('-inf'):
@@ -128,7 +130,7 @@ class ADSBChannel:
                         for_stat_jammed = True
 
                     for_stat_bit_power_jammer.append((bit_index, jamming_power))
-                    
+
                 else:
                     for_stat_bit_power_jammer.append((bit_index, 0))
 
@@ -154,7 +156,7 @@ class ADSBChannel:
         if snr_db < 0 or random.random() < self.error_rate:
             corrupted = True  
 
-        return result_df17_even, result_df17_odd, delay_ns, corrupted, snr_db, for_stat_spoofed, for_stat_jammed, for_stat_bit_power_jammer
+        return result_df17_even, result_df17_odd, delay_ns, corrupted, snr_db, for_stat_spoofed, for_stat_jammed, for_stat_bit_power_jammer, for_stat_bit_frequency_jammer
 
 
     # def corrupt_message(self, message):
