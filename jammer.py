@@ -115,6 +115,7 @@ class Jammer:
             Maximum reduction is capped at 3dB at 500kHz offset
 
             This is oversimplified because real Radio Frequency filters don't have this linear response.
+            
         """
 
         # bit_time_us is required for PULSE type jammer..(maybe?)
