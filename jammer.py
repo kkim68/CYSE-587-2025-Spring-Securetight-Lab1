@@ -115,6 +115,7 @@ class Jammer:
             Maximum reduction is capped at 3dB at 500kHz offset
 
             This is oversimplified because real Radio Frequency filters don't have this linear response.
+            
         """
 
         # bit_time_us is required for PULSE type jammer..(maybe?)
@@ -129,7 +130,7 @@ class Jammer:
 
             if freq_difference < 0.5e6:  # Within 500kHz bandwidth
                 power_reduction = (freq_difference / 0.5e6) * 3
-                return self.jamming_power_dbm - power_reduction - + random.uniform(-0.1, 0.1)
+                return self.jamming_power_dbm - power_reduction + random.uniform(-0.1, 0.1)
 
 
                 
@@ -146,7 +147,7 @@ class Jammer:
             time_in_period = bit_time_us % pulse_period
             if time_in_period < self.pulse_width_us:
                 for_stat_bit_frequency_jammer.append((bit_time_us, self.center_freq))
-                return self.jamming_power_dbm + random.uniform(-2, 2)
+                return self.jamming_power_dbm + random.uniform(-0.1, 0.1)
             else:
                 for_stat_bit_frequency_jammer.append((bit_time_us, float('-inf')))
             
@@ -164,7 +165,7 @@ class Jammer:
 
             if freq_difference < 0.5e6:  # Within 500kHz bandwidth
                 power_reduction = (freq_difference / 0.5e6) * 3
-                return self.jamming_power_dbm - power_reduction + random.uniform(-1, 1)
+                return self.jamming_power_dbm - power_reduction + random.uniform(-0.1, 0.1)
 
 
         # Reference:
@@ -191,6 +192,6 @@ class Jammer:
             #       Try to draw cosine graph if you don't understand.. :)
 
             final_gain = self.antenna_gain_dbi * relative_gain
-            return self.jamming_power_dbm + final_gain            
+            return self.jamming_power_dbm + final_gain + random.uniform(-0.1, 0.1)
             
         return float('-inf')

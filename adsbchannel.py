@@ -129,10 +129,10 @@ class ADSBChannel:
                         result_df17_odd = self.corrupt_bit(result_df17_odd, bit_index)        
                         for_stat_jammed = True
 
-                    for_stat_bit_power_jammer.append((bit_index, jamming_power))
+                    for_stat_bit_power_jammer.append((bit_start_us, jamming_power))
 
                 else:
-                    for_stat_bit_power_jammer.append((bit_index, 0))
+                    for_stat_bit_power_jammer.append((bit_start_us, float('-inf')))
 
         # Calculate overall SNR
         snr_db -= effective_jamming_signal_power_dbm
