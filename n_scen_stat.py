@@ -66,12 +66,12 @@ def plot_bit_sequence_jammer_power(jammer_data):
         times, bit_power_jammer_values = zip(*jammer_values['bit_power'])
         plt.plot(times, bit_power_jammer_values, label=jammer_name)
 
-    plt.xlabel('Bit Timing in a Message (bit)')
-    plt.ylabel('RX Power (dBm)')
-    plt.title('RX Power in GCS over Bit-Sequence for Different jammers')
-    plt.legend()
+    plt.xlabel('Bit Timing in a Message (μs)')
+    plt.ylabel('Jammer TX Power (dBm)')
+    plt.title('Jammer TX Power Over Time in a Single Message')
+    plt.legend(loc="lower right")
     plt.grid(True)
-    plt.savefig('results/RX_Power_jammer.png')
+    plt.savefig('results/tx_power_jammer.png')
     plt.show()
 
 
@@ -82,10 +82,10 @@ def plot_bit_sequence_jammer_power(jammer_data):
         times, bit_power_jammer_values = zip(*jammer_values['bit_frequency'])
         plt.plot(times, bit_power_jammer_values, label=jammer_name)
 
-    plt.xlabel('Bit Timing in a Message (us)')
-    plt.ylabel('Jamming Frequency (MHz)')
-    plt.title('Jammer Frequency Representation over Bit Time')
-    plt.legend()
+    plt.xlabel('Bit Timing in a Message (μs)')
+    plt.ylabel('Jamming Frequency Difference from 1090MHz (MHz)')
+    plt.title('Jammer Frequency Over Time in a Single Message')
+    plt.legend(loc="lower right")
     plt.grid(True)
     plt.savefig('results/jammer_freq.png')
     plt.show()
@@ -323,33 +323,41 @@ def run_simulation_jammer():
 
 
 # Run simulations for each scenario and collect results
+DEBUG_JAMMER_ONLY = False
 
-results = {}
-for scenario, params in scenarios.items():
-    print(f"Running scenario: {scenario}")
-    packet_loss_data, snr_data, latency_data, throughput_data = run_simulation(**params)
-    results[scenario] = {
-        'packet_loss': packet_loss_data,
-        'snr': snr_data,
-        'latency': latency_data,
-        'throughput': throughput_data
-    }
-jammer_data = run_simulation_jammer()
+if DEBUG_JAMMER_ONLY:
+    print(f"Running jammer simulation...")
+    jammer_data = run_simulation_jammer()
+    plot_bit_sequence_jammer_power(jammer_data)
+else:
+    results = {}
+    for scenario, params in scenarios.items():
+        print(f"Running scenario: {scenario}")
+        packet_loss_data, snr_data, latency_data, throughput_data = run_simulation(**params)
+        results[scenario] = {
+            'packet_loss': packet_loss_data,
+            'snr': snr_data,
+            'latency': latency_data,
+            'throughput': throughput_data
+        }
 
-# Ensure the 'results' directory exists
-if not os.path.exists('results'):
-    os.makedirs('results')
+    print(f"Running jammer simulation...")
+    jammer_data = run_simulation_jammer()
 
-plot_bit_sequence_jammer_power(jammer_data)
+    # Ensure the 'results' directory exists
+    if not os.path.exists('results'):
+        os.makedirs('results')
 
-# Plotting packet loss over time for each scenario
-plot_packet_loss_data(results)
+    plot_bit_sequence_jammer_power(jammer_data)
 
-# Plotting SNR over time for each scenario
-plot_snr_data(results)
+    # Plotting packet loss over time for each scenario
+    plot_packet_loss_data(results)
 
-# Plotting Latency over time for each scenario
-plot_latency_data(results)
+    # Plotting SNR over time for each scenario
+    plot_snr_data(results)
 
-# Plotting Throughput over time for each scenario
-plot_throughput_data(results)
+    # Plotting Latency over time for each scenario
+    plot_latency_data(results)
+
+    # Plotting Throughput over time for each scenario
+    plot_throughput_data(results)
