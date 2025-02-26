@@ -323,7 +323,7 @@ def run_simulation_jammer():
 
 
 # Run simulations for each scenario and collect results
-DEBUG_JAMMER_ONLY = False
+DEBUG_JAMMER_ONLY = True
 
 if DEBUG_JAMMER_ONLY:
     print(f"Running jammer simulation...")
